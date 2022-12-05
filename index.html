@@ -1,0 +1,69 @@
+<html>
+    <head>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-csv/1.0.11/jquery.csv.min.js"></script>
+        <script>
+            async function ReadFile(file) {
+                return await file.text()
+            }
+
+            function removeExtraSpace(stringData) {
+                stringData = stringData.replace(/,( *)/gm, ",")  // remove extra space
+                stringData = stringData.replace(/^ *| *$/gm, "") // remove space on the beginning and end.
+                return stringData  
+            }
+
+            window.onload = () => {
+                const inputFile = document.getElementById("uploadFile")
+                inputFile.onchange = () => {
+                    const inputValue = inputFile.value
+                    if (inputValue === "") {
+                        return
+                    }
+
+                    const selectedFile = document.getElementById('uploadFile').files[0]
+                    const promise = new Promise(resolve => {
+                        const fileContent = ReadFile(selectedFile)
+                        resolve(fileContent)
+                    })
+
+                    promise.then(fileContent => {
+                        // Use promise to wait for the file reading to finish.
+                        // console.log(fileContent)
+                        fileContent = removeExtraSpace(fileContent)
+                        const myObj = $.csv.toObjects(fileContent)
+                        // const newObject = Object.create(obj);
+                        const jsonObj = {"CDN_URL": "", "CURRENCIES": {}};
+                        const tmpObj = new Object();
+
+                        Object.values(myObj).forEach((item) => {
+                            tmpObj[item['Currency']] = {
+                                'sign': item['sign'],
+                                'icon': item['icon'],
+                                'locales' : {
+                                    'en': item['locales_en'],
+                                    'zh': item['locales_zh']
+                                }
+                            }
+                        });
+
+                        jsonObj['CURRENCIES'] = tmpObj;
+
+                        //Save the file contents as a DataURI
+                        var dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(JSON.stringify(jsonObj));
+
+                        //Write it as the href for the link
+                        var link = document.getElementById('download').href = dataUri;
+                        document.getElementById('download').disabled = false;
+                        document.getElementById('download').text = "Download";
+                    })
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <label for="uploadFile">Demo 1</label>
+        <input type="file" id="uploadFile" accept=".csv"/>
+        <a id="download" download="example.json" href="#" disabled></a>
+    </body>
+</html>
